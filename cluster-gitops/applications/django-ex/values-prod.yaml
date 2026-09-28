@@ -1,0 +1,22 @@
+image:
+  tag: "latest"
+
+env:
+  - name: DB_NAME
+    value: "my_app_db"
+  - name: DB_USERNAME
+    value: "prod_user"
+  - name: DB_PASSWORD
+    value: "StrongAppPassword123"
+
+# PostgreSQL subchart configurations
+postgresql:
+  auth:
+    database: my_app_db
+    username: prod_user
+    password: "StrongAppPassword123"
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: "standard"

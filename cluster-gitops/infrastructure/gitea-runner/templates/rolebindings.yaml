@@ -1,0 +1,41 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: 'system:openshift:scc:hostmount-anyuid'
+  namespace: {{ .Values.namespace | default "gitea" }}
+subjects:
+  - kind: ServiceAccount
+    name: gitea-runner-sa
+    namespace: {{ .Values.namespace | default "gitea" }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'system:openshift:scc:hostmount-anyuid'
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: 'system:openshift:scc:privileged'
+  namespace: {{ .Values.namespace | default "gitea" }}
+subjects:
+  - kind: ServiceAccount
+    name: gitea-runner-sa
+    namespace: {{ .Values.namespace | default "gitea" }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'system:openshift:scc:privileged'
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: 'system:image-builder'
+  namespace: {{ .Values.namespace | default "gitea" }}
+subjects:
+  - kind: ServiceAccount
+    name: gitea-runner-sa
+    namespace: {{ .Values.namespace | default "gitea" }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'system:image-builder'

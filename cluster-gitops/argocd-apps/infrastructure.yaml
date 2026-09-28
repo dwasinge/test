@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitea-runner
+  namespace: openshift-gitops
+  annotations:
+    # Wave 1: Deploy secrets management first
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: 'https://gitea-gitea.apps.ocp4.sandbox520.opentlc.com/giteaadmin/cluster-gitops.git'
+    targetRevision: HEAD
+    path: infrastructure/gitea-runner
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: gitea
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      name: openshift-internal-ca
+      jsonPointers:
+        - /data
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

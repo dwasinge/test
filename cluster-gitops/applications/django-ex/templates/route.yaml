@@ -1,0 +1,12 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: my-application-route
+spec:
+  # Optional: Omit to let OpenShift generate a default hostname
+  # host: app.example.com 
+  to:
+    kind: Service
+    name: {{ include "django-ex-deploy.fullname" . }}
+  port:
+    targetPort: {{ .Values.service.targetPort }}

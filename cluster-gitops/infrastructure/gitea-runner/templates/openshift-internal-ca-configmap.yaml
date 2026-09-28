@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openshift-internal-ca
+  namespace: {{ .Values.namespace | default "gitea" }}
+  labels:
+    config.openshift.io/inject-trusted-cabundle: "true"
+data: {}

@@ -1,0 +1,8 @@
+# Default values for gitea-custom.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+gitea:
+  name: gitea-runner
+  giteaUrl: http://gitea:3000
+  registrationToken: FBqnBZJbrzxlohW91nc8cQemCnwrxPixPo03YNig

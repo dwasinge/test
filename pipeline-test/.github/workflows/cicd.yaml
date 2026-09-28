@@ -1,0 +1,63 @@
+name: Build and Push to OpenShift Registry
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Define global variables for readability
+env:
+  REGISTRY_URL: "image-registry.openshift-image-registry.svc:5000"
+  TARGET_NAMESPACE: "gitea"          # Replace with your target OpenShift namespace
+  IMAGE_NAME: "django-ex"                # Name of your target ImageStream
+  IMAGE_TAG: "latest"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out repository code
+        run: |
+          git clone http://${{ secrets.GITEA_TOKEN }}@gitea:3000/giteaadmin/pipeline-test.git .
+          git checkout main
+
+      # Step 1: Create a dummy Dockerfile if one doesn't exist in your repo
+      - name: Create Sample Dockerfile
+        run: |
+          cat <<EOF > Dockerfile
+          FROM registry.access.redhat.com/ubi9-minimal:latest
+          RUN echo "Built by Gitea Actions inside OpenShift" > /etc/build-info
+          CMD ["cat", "/etc/build-info"]
+          EOF
+
+      # Step 2: Install Buildah dynamically (Or use a custom base runner image that pre-bakes it)
+      - name: Install Buildah
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y buildah
+
+      # Step 3: Authenticate Buildah against the OpenShift Internal Registry
+      # We use the ServiceAccount token that OpenShift injects into the runner pod at runtime
+      - name: Log in to OpenShift Internal Registry
+        run: |
+          # The ServiceAccount token is automatically mounted at this path in OpenShift pods
+          buildah login --tls-verify=false --username gitea-runner-sa --password "${{ secrets.OPENSHIFT_TOKEN }}" ${{ env.REGISTRY_URL }}
+
+      # Step 4: Build the image using Buildah
+      - name: Build OCI Image
+        run: |
+          REGISTRY_DEST="${{ env.REGISTRY_URL }}/${{ env.TARGET_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          echo "Building image tag: $REGISTRY_DEST"
+          
+          # Buildah safely compiles the storage layers entirely unprivileged inside the runner's workspace
+          buildah bud --tls-verify=false --isolation=chroot --storage-driver=vfs -t "$REGISTRY_DEST" .
+
+      # Step 5: Push the compiled image back up to the cluster's ImageStream
+      - name: Push Image to OpenShift Registry
+        run: |
+          REGISTRY_DEST="${{ env.REGISTRY_URL }}/${{ env.TARGET_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          
+          # Push the layer data straight over the internal cluster network mesh
+          buildah push --tls-verify=false --storage-driver=vfs "$REGISTRY_DEST"

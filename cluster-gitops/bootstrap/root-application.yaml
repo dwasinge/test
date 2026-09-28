@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: openshift-gitops
+  # Finalizers ensure child applications are safely deleted if the root app is removed
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Replace with your actual GitOps repository URL
+    repoURL: 'https://gitea-gitea.apps.ocp4.sandbox520.opentlc.com/giteaadmin/cluster-gitops.git'
+    targetRevision: HEAD
+    path: argocd-apps
+  destination:
+    # The root app deploys child Application manifests back into the Argo CD cluster
+    server: 'https://kubernetes.default.svc'
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true     # Automatically removes child apps if their files are deleted from Git
+      selfHeal: true  # Overwrites manual changes made in the cluster to prevent configuration drift
+    syncOptions:
+      - CreateNamespace=true

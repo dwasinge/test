@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitea-runner-config
+  namespace: {{ .Values.namespace | default "gitea" }}
+data:
+  app.ini: |
+    log:
+      level: "info" # Options: trace, debug, info, warn, error, panic
+
+    runner:
+      # The context directory used to store build steps and temporary state
+      file: ".runner"
+      name: "openshift-podman-runner"
+      # Targets the labels this runner will accept. 
+      # This tells Gitea to route standard generic Ubuntu actions to this pod.
+      labels:
+        - "ubuntu-latest:docker://node:18-bullseye"
+        - "ubuntu-22.04:docker://node:18-bullseye"
+        - "ubuntu-20.04:docker://node:16-bullseye"
+
+    cache:
+      enabled: true
+      dir: ""
+      # Internal cluster connection fallback if Gitea instance isn't directly reachable
+      host: ""
+      port: 0
+
+    container:
+      # Crucial configuration for the Podman socket connection
+      docker_host: "unix:///var/run/podman/podman.sock"
+      # Default timeout limits for individual step layers
+      timeout: "30m"
+      # Forces the engine to use a local unique bridge network inside the Podman daemon
+      network: "bridge"
+      # Enables container reuse to optimize step speed
+      reuse_containers: true
+      # Forces Podman to clean up exited containers after steps are complete
+      force_pull: false
+      valid_volumes:
+        - "**"
+
+    host:
+      # Disables execution directly on the host shell since we are using Podman containers
+      workdir: ""

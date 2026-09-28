@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: podman-storage-config
+  namespace: {{ .Values.namespace | default "gitea" }}
+data:
+  storage.conf: |
+    [storage]
+    driver = "overlay"
+
+    [storage.options.overlay]
+    mount_program = "/usr/bin/fuse-overlayfs"
+    mountopt = "nodev"

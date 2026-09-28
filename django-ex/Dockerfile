@@ -1,0 +1,23 @@
+# Pull base image
+FROM python:3.13-slim-bookworm
+
+# Set environment variables
+ENV PIP_DISABLE_PIP_VERSION_CHECK 1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Set work directory
+WORKDIR /code
+
+# Install dependencies
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+
+# Copy project
+COPY . .
+
+# Expose the port Django runs on
+EXPOSE 8000
+
+# Start the application server
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

@@ -1,0 +1,21 @@
+image:
+  tag: "dbeb49c3e184ffa47541d800ccd929c3c8e0a2da"
+
+service:
+  port: 8000
+  targetPort: 8000
+
+env:
+  - name: DB_NAME
+    value: "my_app_db"
+  - name: DB_USER
+    value: "dev_user"
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: django-ex-db-dev-postgresql
+        key: password
+  - name: PGSSLMODE
+    value: "disable"
+  - name: OPTIONS
+    value: "-c ssl=off" 

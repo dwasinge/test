@@ -1,0 +1,63 @@
+# PostgreSQL subchart configurations
+postgresql:
+  image:
+    tag: "latest"
+
+  containerPorts:
+    postgresql: 5432
+  
+  service:
+    type: ClusterIP
+    ports:
+      postgresql: 5432
+    sessionAffinity: None
+
+  tls:
+    enabled: false
+
+  # --- CRITICAL OPENSHIFT TOGGLE ---
+  # Automatically overrides and strips out hardcoded 1001/0 UIDs chart-wide
+  global:
+    compatibility:
+      openshift:
+        adaptSecurityContext: auto
+
+  auth:
+    database: my_app_db
+    username: dev_user
+    password: 5zizssZc6V
+
+  primary:
+
+    pgHbaConfiguration: |
+      local    all             all                                     trust
+      host     all             all             127.0.0.1/32            trust
+      host     all             all             ::1/128                 trust
+      host     all             all             0.0.0.0/0               scram-sha-256
+      host     all             all             0.0.0.0/0               md5
+      host     all             all             ::/0                    scram-sha-256
+      host     all             all             ::/0                    md5
+
+
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: "gp2"
+
+    # Explicitly clear these out to align with your OCP project ranges
+    podSecurityContext:
+      enabled: false
+      fsGroup: null
+      
+    containerSecurityContext:
+      enabled: false
+      runAsUser: null
+      runAsGroup: null
+      runAsNonRoot: true
+      seLinuxOptions:
+        level: "s0:c26,c5"
+
+  # --- CRITICAL FIX ---
+  # MUST BE FALSE. Disables the root initContainer entirely.
+  volumePermissions:
+    enabled: false

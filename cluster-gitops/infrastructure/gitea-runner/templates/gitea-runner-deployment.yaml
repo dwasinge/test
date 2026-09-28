@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gitea-runner
+  name: gitea-runner
+  namespace:  {{ .Values.namespace | default "gitea" }}
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: gitea-runner
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: gitea-runner
+    spec:
+      containers:
+      - env:
+        - name: DOCKER_HOST
+          value: unix:///var/run/podman/podman.sock
+        - name: GITEA_INSTANCE_URL
+          value: {{ .Values.gitea.giteaUrl }}
+        - name: GITEA_RUNNER_REGISTRATION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: gitea-runner-secret
+        image: gitea/act_runner:latest
+        imagePullPolicy: Always
+        name: runner
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/run/podman
+          name: podman-socket
+        - mountPath: /data
+          name: runner-data
+      - command:
+        - podman
+        - system
+        - service
+        - --time=0
+        - unix:///var/run/podman/podman.sock
+        env:
+        - name: TMPDIR
+          value: /run
+        image: quay.io/podman/stable:latest
+        imagePullPolicy: Always
+        name: podman-sidecar
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+            - SETFCAP
+            - SYS_CHROOT
+          privileged: true
+          runAsUser: 0
+          seLinuxOptions:
+            type: spc_t
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/run/podman
+          name: podman-socket
+        - mountPath: /var/lib/containers
+          name: podman-storage
+        - mountPath: /dev/fuse
+          name: dev-fuse
+        - mountPath: /config
+          name: runner-config
+        - mountPath: /root/.docker
+          name: registry-secret
+          readOnly: true
+        - mountPath: /etc/pki/ca-trust/source/anchors
+          name: cluster-ca
+          readOnly: true
+        - mountPath: /etc/containers/storage.conf
+          name: podman-storage-override
+          readOnly: true
+          subPath: storage.conf
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: gitea-runner-sa
+      serviceAccountName: gitea-runner-sa
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: podman-socket
+      - emptyDir: {}
+        name: runner-data
+      - emptyDir: {}
+        name: podman-storage
+      - hostPath:
+          path: /dev/fuse
+          type: CharDevice
+        name: dev-fuse
+      - configMap:
+          defaultMode: 420
+          name: gitea-runner-config
+        name: runner-config
+      - name: registry-secret
+        secret:
+          defaultMode: 420
+          secretName: gitea-runner-sa-dockercfg-hs49z
+          items:
+          - key: .dockercfg
+            path: config.json 
+        #   items:
+        #   - key: .dockerconfigjson
+        #     path: config.json
+        #   secretName: private-registry-creds
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: ca-bundle.crt
+            path: openshift-ca.crt
+          name: openshift-internal-ca
+        name: cluster-ca
+      - configMap:
+          defaultMode: 420
+          name: podman-storage-config
+        name: podman-storage-override
